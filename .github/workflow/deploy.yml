@@ -1,0 +1,69 @@
+name: CI/CD Pipeline (Direct Deploy)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # --- ЭТАП CI: ТЕСТЫ ---
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest
+        run: |
+          pytest
+
+  # --- ЭТАП CD: ДЕПЛОЙ НАПРЯМУЮ НА СЕРВЕР ---
+  deploy:
+    runs-on: ubuntu-latest
+    needs: tests # Запуск только если тесты прошли успешной
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Копируем файлы проекта на ваш сервер в папку /var/www/my-fastapi-app
+      - name: Copy files to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "."
+          target: "/var/www/my-fastapi-app"
+
+      # Подключаемся по SSH и собираем Docker-образ прямо на сервере
+      - name: Build and Run Docker on Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/my-cicd-app
+            
+            # Собираем образ локально на сервере (называем его fastapi-local)
+            docker build -t fastapi-local .
+            
+            # Перезапускаем контейнер
+            docker stop fastapi-todo-app || true
+            docker rm fastapi-todo-app || true
+            
+            docker run -d \
+              --name fastapi-todo-app \
+              -p 8098:8098 \
+              --restart unless-stopped \
+              fastapi-local
