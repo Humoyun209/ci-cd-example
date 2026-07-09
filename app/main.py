@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi import status
 from pydantic import BaseModel
 
 app = FastAPI(title="Simple Todo API")
@@ -18,7 +19,7 @@ def get_todos():
     return todos
 
 
-@app.post("/todos", status_code=21)
+@app.post("/todos", status_code=status.HTTP_201_CREATED)
 def create_todo(todo: TodoCreate):
     new_todo = {"id": len(todos) + 1, "title": todo.title, "completed": False}
     todos.append(new_todo)
