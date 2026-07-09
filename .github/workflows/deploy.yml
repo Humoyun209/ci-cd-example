@@ -57,6 +57,6 @@ jobs:
             docker rm fastapi-todo-app || true
             docker run -d \
               --name fastapi-todo-app \
-              -p 80:80 \
+              -p 9696:9696 \
               --restart unless-stopped \
               fastapi-local
