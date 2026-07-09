@@ -25,17 +25,15 @@ jobs:
       - name: Run Pytest
         run: |
           pytest
-
-  # --- ЭТАП CD: ДЕПЛОЙ НАПРЯМУЮ НА СЕРВЕР ---
+      
   deploy:
     runs-on: ubuntu-latest
-    needs: tests # Запуск только если тесты прошли успешной
+    needs: tests
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Копируем файлы проекта на ваш сервер в папку /var/www/my-fastapi-app
       - name: Copy files to Server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -46,25 +44,20 @@ jobs:
           source: "."
           target: "/var/www/my-fastapi-app"
 
-      # Подключаемся по SSH и собираем Docker-образ прямо на сервере
       - name: Build and Run Docker on Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 9633
           script: |
-            cd /var/www/my-cicd-app
-            
-            # Собираем образ локально на сервере (называем его fastapi-local)
+            cd /var/www/my-fastapi-app
             docker build -t fastapi-local .
-            
-            # Перезапускаем контейнер
             docker stop fastapi-todo-app || true
             docker rm fastapi-todo-app || true
-            
             docker run -d \
               --name fastapi-todo-app \
-              -p 8098:8098 \
+              -p 80:80 \
               --restart unless-stopped \
               fastapi-local
