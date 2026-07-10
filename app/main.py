@@ -7,6 +7,7 @@ app = FastAPI(title="Simple Todo API")
 todos = [
     {"id": 1, "title": "Изучить CI/CD", "completed": False},
     {"id": 2, "title": "Настроить GitHub Actions", "completed": False},
+    {"id": 3, "title": "Стать Staff Engineer at Google", "completed": False},
 ]
 
 
